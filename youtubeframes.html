@@ -1,0 +1,479 @@
+<html>
+<head>
+<title>[editor]</title>
+<link rel='shortcut icon' href='framesicon.jpg' /> 
+<script type="text/javascript" >
+var x;
+var y;
+var framenum = 0;
+var resizeObj = new Object(); //holds object currently being dragged
+var resizeObj = new Object(); //holds object currently being resized
+var zcounter=0;
+function updatezindex(id,direction)
+{ 
+  var current = document.getElementById("div"+id).style.zIndex;
+  if(direction == 'up')
+  {document.getElementById("div"+id).style.zIndex = parseInt(current) +1;}
+  if(direction == 'down')
+  {document.getElementById("div"+id).style.zIndex = parseInt(current) -1;}
+  }
+function highlightframe(id)
+{
+  document.getElementById("div"+id).style.outline = "dashed thin black";
+}
+function unhighlightframe(id)
+{
+  document.getElementById("div"+id).style.outline = "";
+}
+function addlayerbox(url) //adds the controlls box for manipulating a frame that's been added. It's a layer in the same sense as a photoshop layer. 
+{
+var newlayer = document.createElement('div');
+newlayer.setAttribute('id','controlbox'+framenum);
+newlayer.setAttribute('class','layerbox');
+newlayer.setAttribute('onmouseover',"highlightframe("+framenum+")");
+newlayer.setAttribute('onmouseout',"unhighlightframe("+framenum+")");
+
+
+ var cursorspan = document.createElement('span');
+ cursorspan.setAttribute('id',framenum +"span");
+ cursorspan.setAttribute('class','cursorspan');
+ cursorspan.setAttribute('onmousedown',"dragstart(event,'" + framenum + "')");
+ cursorspan.setAttribute('style','float:right;position:relative; z-index:100;');
+ cursorspan.innerHTML = "<img src='dragcursor.png' />";
+ newlayer.appendChild(cursorspan);
+ 
+ var zup = document.createElement('span');
+ zup.setAttribute('id',"zup"+framenum);
+ zup.setAttribute('class','xspan');
+ zup.setAttribute('onmousedown',"updatezindex("+framenum+",'up')");
+ zup.setAttribute('style','float:right;position:relative; z-index:100;');
+ zup.innerHTML = "<img src='zup.png' />";
+ newlayer.appendChild(zup);
+ 
+ var zdown = document.createElement('span');
+ zdown.setAttribute('id',"zdown"+framenum);
+ zdown.setAttribute('class','xspan');
+ zdown.setAttribute('onmousedown',"updatezindex("+framenum+",'down')");
+ zdown.setAttribute('style','float:right;position:relative; z-index:100;');
+ zdown.innerHTML = "<img src='zdown.png' />";
+ newlayer.appendChild(zdown);
+ 
+  var imgresize = document.createElement('span');
+ imgresize.setAttribute('id',framenum +"imgresize");
+ imgresize.setAttribute('class','xspan');
+ imgresize.setAttribute('onmousedown',"resizestart(event,'" + framenum + "','div')");
+ imgresize.setAttribute('style','float:right;position:relative; z-index:100;');
+ imgresize.innerHTML = "<img src='divresize.png' />";
+ newlayer.appendChild(imgresize);
+ 
+ var frameresize = document.createElement('span');
+ frameresize.setAttribute('id',framenum +"x");
+ frameresize.setAttribute('class','xspan');
+ frameresize.setAttribute('onmousedown',"resizestart(event,'" + framenum + "','frame')");
+ frameresize.setAttribute('style','float:right;position:relative; z-index:100;');
+ frameresize.innerHTML = "<img src='frameresize.png' />";
+ newlayer.appendChild(frameresize);
+
+  var xspan = document.createElement('span');
+ xspan.setAttribute('id',framenum +"x");
+ xspan.setAttribute('class','xspan');
+ xspan.setAttribute('onmousedown',"deleteframe("+framenum+")");
+ xspan.setAttribute('style','float:right;position:relative; z-index:100;');
+ xspan.innerHTML = "<img src='X.gif' />";
+ newlayer.appendChild(xspan);
+ 
+ document.getElementById('controls').appendChild(newlayer);
+
+}
+function deleteframe(framenumber)
+{
+var deadframe = document.getElementById('frame' + framenumber);
+var deaddiv = document.getElementById('div'+framenumber);
+var deadlayer = document.getElementById('controlbox' + framenumber);
+deadframe.setAttribute('src','');
+deaddiv.style.top = -5000 + 'px';
+deaddiv.style.left = -5000 + 'px';
+deadlayer.innerHTML = '';
+deadlayer.setAttribute('class','dead');
+
+}
+
+function savepage()
+{
+var newform = document.createElement('form');
+var fulltext = document.body.innerHTML;
+var divarray = getElementsByClass("divwindow");
+var framearray = getElementsByClass("framewindow");
+var scrollXarray = new Array();
+var scrollYarray = new Array();
+var divstyles = new Array();
+var framestyles = new Array();
+var framesources = new Array()
+var newinput1; //stores input element for submission form
+var newinput2; 
+//storing scroll positions
+for(var i=0; i< divarray.length; i++)
+{
+scrollYarray[i] = divarray[i].scrollTop;
+scrollXarray[i] = divarray[i].scrollLeft;
+}
+//storing div styles (position being most important)
+for(var i=0; i < divarray.length; i++)
+{
+divstyles[i] = divarray[i].getAttribute("style");
+}
+for(var i=0; i < framearray.length; i++)
+{
+framestyles[i] = framearray[i].getAttribute("style");
+}
+//store frame sources
+for(var i=0; i < framearray.length; i++)
+{
+framesources[i] = framearray[i].getAttribute("src");
+}
+
+//form generation and submission
+
+for(var i=0; i < divarray.length; i++)  //create scroll inputs in form
+{
+ newinput1 = document.createElement('input');
+ newinput2 = document.createElement('input');
+ newinput1.setAttribute('type','hidden');
+ newinput2.setAttribute('type','hidden');
+ newinput1.setAttribute('name','scrollx' +i);
+ newinput2.setAttribute('name','scrolly' +i);
+ newinput1.setAttribute('value', scrollXarray[i]);
+ newinput2.setAttribute('value', scrollYarray[i]);
+ newform.appendChild(newinput1);
+ newform.appendChild(newinput2);
+}
+for(var i=0; i < divarray.length; i++)  //create div style inputs in form
+{
+  newinput1 = document.createElement('input');
+  newinput1.setAttribute('type','hidden');
+  newinput1.setAttribute('name','dstyle' +i);
+  newinput1.setAttribute('value', divstyles[i]);
+  newform.appendChild(newinput1);
+}
+for(var i=0; i < framearray.length; i++)  //create frame source inputs in form
+{
+  newinput1 = document.createElement('input');
+  newinput1.setAttribute('type','hidden');
+  newinput1.setAttribute('name','framesource' +i);
+  newinput1.setAttribute('value', framesources[i]);
+  newform.appendChild(newinput1);
+}
+
+for(var i=0; i < framearray.length; i++)  //create frame style inputs in form
+{
+  newinput1 = document.createElement('input');
+  newinput1.setAttribute('type','hidden');
+  newinput1.setAttribute('name','fstyle' +i);
+  newinput1.setAttribute('value', framestyles[i]);
+  newform.appendChild(newinput1);
+}
+  newinput1 = document.createElement('input');  //holds total number of frames stored in form
+  newinput1.setAttribute('type','hidden');
+  newinput1.setAttribute('name','length');
+  newinput1.setAttribute('value', divarray.length);
+  newform.appendChild(newinput1);
+  
+newform.setAttribute('method','post');
+newform.setAttribute('action', "savepage.php");
+document.body.appendChild(newform);
+newform.submit();
+}
+function hidecontrols()
+{
+var controlbox = document.getElementById('controlbox');
+var controls = document.getElementById('controls'); 
+if(controlbox.checked == true)
+{controls.style.position = 'absolute';
+ controls.style.left = '-500';
+   if(sizebox.checked == true)
+   {
+     sizebox.checked = false;
+	 hidesizeboxes()
+   }
+ }
+else
+  { 
+  controls.style.left = '20px'; 
+   controls.style.top = '20px';
+   }
+}
+function hidesizeboxes()
+{
+var sizebox = document.getElementById('sizebox');
+var sizeboxes = document.getElementById('sizeboxes'); 
+if(sizebox.checked == true)
+{ 
+sizeboxes.style.left = '340px'; 
+   sizeboxes.style.top = '20px';
+ }
+else
+{  
+sizeboxes.style.position = 'absolute';
+ sizeboxes.style.left = '-500';}
+}
+function xcss(framenum) //sets the style and position of each added frame
+{ 
+var mydiv = document.getElementById("div" + framenum);
+var myframe = document.getElementById("frame" + framenum);
+mydiv.style.width = document.getElementById('pagewidth').value;
+mydiv.style.height = document.getElementById('pageheight').value;
+mydiv.style.position = 'absolute';
+mydiv.style.overflow = 'scroll';
+mydiv.style.top = '200px';
+mydiv.style.left = (framenum * 50) + 'px';
+mydiv.style.zIndex = zcounter;
+
+myframe.style.width = document.getElementById('windowwidth').value;
+myframe.style.height = document.getElementById('windowheight').value;
+myframe.style.position = 'absolute';
+myframe.style.top = '0';
+myframe.style.left = '0';
+myframe.style.border ='0';
+myframe.style.zIndex = zcounter;
+zcounter++;
+}
+
+
+function addpage()
+{
+
+if(document.getElementById('siteurl').value == '')
+{
+alert('Please, just enter a youtube URL');
+}
+else
+{
+var myframe = document.createElement('iframe'); //"<div id='div" + framenum + "'><iframe id='frame" + framenum + "' src='" + document.getElementById('siteurl').value + "'  ></iframe></div>";
+var mydiv = document.createElement('div');
+var fullurl = document.getElementById('siteurl').value;
+var halfurl = fullurl.split('v=')[1];
+var url = halfurl.split('&')[0];
+var starttime = document.getElementById('starttime').value;
+var endtime = document.getElementById('endtime').value;
+var muted = document.getElementById('muted').checked;
+var volume;
+if(muted)
+{
+ volume = 0;
+}
+else
+{
+volume = 100;
+}
+mydiv.id = "div" + framenum;
+mydiv.className = "divwindow";
+myframe.id = "frame" + framenum;
+myframe.src = "http://cloudonshore.com/youtubefull.php?url=" + url + "&volume=" + volume + "&endtime=" + endtime + "&starttime=" + starttime;
+myframe.className = "framewindow";
+mydiv.appendChild(myframe);
+document.body.appendChild(mydiv);
+xcss(framenum);
+addlayerbox(myframe.src);
+framenum++; 
+}
+}
+function hidescroll()
+{
+var divs = getElementsByClass('divwindow');
+var tempinterior;  //used to work around a bug where editing the style element of a div would cause a youtube video contained in the iframe not to autoplay, 
+                   //clearing the interior of the divs[i] element acts as a refresh.  
+for (var i=0; i<divs.length; i++) 
+{
+tempinterior = divs[i].innerHTML;
+divs[i].innerHTML = "";
+divs[i].style.overflow = 'hidden';
+divs[i].innerHTML = tempinterior;
+}
+}
+function unhidescroll()
+{
+var divs = getElementsByClass('divwindow');
+var tempinterior;
+for (var i=0; i<divs.length; i++) 
+{
+tempinterior = divs[i].innerHTML;
+divs[i].innerHTML = "";
+divs[i].style.overflow = 'scroll';
+divs[i].innerHTML = tempinterior;
+}
+var specialdiv = document.getElementById('controls');
+specialdiv.style.overflow = 'hidden';
+}
+
+
+function dragstart(event,id)
+{
+var divs = getElementsByClass('divwindow');
+for (var i=0; i<divs.length; i++) 
+{
+divs[i].style.pointerEvents ='none'; //takes away interactive elements of frames, which makes dragging perform much better.
+}
+
+
+var divid = "div" + (id);
+var spanid = id + "span";
+var x,y;
+resizeObj.div = document.getElementById(divid);
+resizeObj.span = document.getElementById(spanid);
+if(resizeObj.div.nodeType == 3)
+ {
+   resizeObj.div = resizeObj.div.parentNode;
+ }
+resizeObj.mouseX = event.clientX;
+resizeObj.mouseY = event.clientY;   //resizeObj holds both contain div and frame so they can be moved on the page simultaniously
+//resizeObj.elX = parseInt(resizeObj.div.style.left,10);
+//resizeObj.elY = parseInt(resizeObj.div.style.top,10);
+//new code v
+resizeObj.divX = parseInt(resizeObj.div.style.left,10);
+resizeObj.divY = parseInt(resizeObj.div.style.top,10);
+resizeObj.spanX = parseInt(resizeObj.span.style.left,10);
+resizeObj.spanY = parseInt(resizeObj.span.style.top,10);
+
+document.addEventListener("mousemove", draggo, true);
+document.addEventListener("mouseup", dragstop,true);
+event.preventDefault();
+}
+function draggo(event)
+{
+var x,y;
+x = event.clientX;
+y = event.clientY;
+resizeObj.div.style.left = (resizeObj.divX + x - resizeObj.mouseX) + "px";
+resizeObj.div.style.top = (resizeObj.divY + y - resizeObj.mouseY) + "px";
+resizeObj.span.style.left = (resizeObj.spanX + x - resizeObj.mouseX) + "px";
+resizeObj.span.style.top = (resizeObj.spanY + y - resizeObj.mouseY) + "px";
+
+event.preventDefault();
+}
+function dragstop(event)
+{
+document.removeEventListener("mousemove",draggo,true);
+document.removeEventListener("mouseup",dragstop,true);
+var divs = getElementsByClass('divwindow');
+for (var i=0; i<divs.length; i++) 
+{
+divs[i].style.pointerEvents ='auto'; //restores interactive elements of frames, since the dragging process has completed. 
+}
+
+}
+
+
+function resizestart(event,id,type)
+{
+var divs = getElementsByClass('divwindow');
+for (var i=0; i<divs.length; i++) 
+{
+divs[i].style.pointerEvents ='none'; //takes away interactive elements of frames, which makes dragging perform much better.
+}
+
+
+var divid = "div" + (id);
+var spanid = "frame" + id;
+var x,y;
+resizeObj.div = document.getElementById(divid);
+resizeObj.span = document.getElementById(spanid);
+resizeObj.type = type;
+if(resizeObj.div.nodeType == 3)
+ {
+   resizeObj.div = resizeObj.div.parentNode;
+ }
+resizeObj.mouseX = event.clientX;
+resizeObj.mouseY = event.clientY;   //resizeObj holds both contain div and frame so they can be moved on the page simultaniously
+
+resizeObj.divX = parseInt(resizeObj.div.style.width,10);
+resizeObj.divY = parseInt(resizeObj.div.style.height,10);
+resizeObj.spanX = parseInt(resizeObj.span.style.width,10);
+resizeObj.spanY = parseInt(resizeObj.span.style.height,10);
+
+document.addEventListener("mousemove", resizego, true);
+document.addEventListener("mouseup", resizestop,true);
+event.preventDefault();
+}
+function resizego(event)
+{
+var x,y;
+x = event.clientX;
+y = event.clientY;
+if(resizeObj.type == 'div')
+{
+resizeObj.div.style.width = (resizeObj.divX + x - resizeObj.mouseX) + "px";
+resizeObj.div.style.height = (resizeObj.divY + y - resizeObj.mouseY) + "px";
+}
+if(resizeObj.type == 'frame')
+{
+resizeObj.span.style.width = (resizeObj.spanX + x - resizeObj.mouseX) + "px";
+resizeObj.span.style.height = (resizeObj.spanY + y - resizeObj.mouseY) + "px";
+}
+event.preventDefault();
+}
+function resizestop(event)
+{
+document.removeEventListener("mousemove",resizego,true);
+document.removeEventListener("mouseup",resizestop,true);
+var divs = getElementsByClass('divwindow');
+for (var i=0; i<divs.length; i++) 
+{
+divs[i].style.pointerEvents ='auto'; //restores interactive elements of frames, since the dragging process has completed. 
+}
+
+}
+
+
+
+
+
+function getElementsByClass(searchClass,node,tag) {
+	var classElements = new Array();
+	if ( node == null )
+		node = document;
+	if ( tag == null )
+		tag = '*';
+	var els = node.getElementsByTagName(tag);
+	var elsLen = els.length;
+	var pattern = new RegExp('(^|\\\\s)'+searchClass+'(\\\\s|$)');
+	for (i = 0, j = 0; i < elsLen; i++) {
+		if ( pattern.test(els[i].className) ) {
+			classElements[j] = els[i];
+			j++;
+		}
+	}
+	return classElements;
+}
+</script>
+<style type='text/css' title='mystyles' >
+div#controls {outline: solid thin black; width: 310px; padding: 10px; position: absolute; top: 20px; left: 20px; z-index: 100;}
+p#sizeboxes {outline: solid thin black; width: 300px; padding: 10px; position: absolute; top: 20px; left: -500px; z-index: 100;}
+input#controlbox {position: absolute; top: 0px; left: 0px;  z-index: 100;}
+input { background-color: #123123; color: white; font-family: sans-serif; margin: 2px; }
+div.layerbox { font-family: sans-serif; font-size: 18px; border: 1px; border-style: solid; height: 35px; padding: 3px; margin: 4px;}
+div.layerurlbox { padding-left: 5px; padding-right: 5px; display: inline-block; margin-bottom: 5px; }
+span.cursorspan {border:1px; border-style: solid; border-color: gray; padding: 1px; height: 30px; display: inline-block; margin-right: 5px;}
+span.xspan {border:1px; border-style: solid; border-color: gray; padding: 1px; height: 30px; display: inline-block; margin-right: 5px; 
+</style>
+</head>
+<body onload='hidesizeboxes()'>
+<input id='controlbox' onclick='hidecontrols()' type='checkbox' />
+<div id='controls'>
+<input id='addbutton' type='button' value='Add Youtube' onClick='addpage()' />
+<input id='siteurl' type='text'  />
+<input id='sizebox' onclick='hidesizeboxes()' type='checkbox' style="display:none;"><input type="checkbox" id='muted'/><span style="font-size:10px; font-family: sans-serif;">mute</span><br />
+<span style="font-size:10px; font-family: sans-serif;">Start Time</span><input type='text' size='4' id='starttime' value='0'/>
+<span style="font-size:10px; font-family: sans-serif;">End Time</span><input type='text' size='4' id='endtime' />
+<input id='hidescrolls' type='button' value='Hide Scrolls' onClick='hidescroll(framenum)' /> 
+<input id='unhidescrolls' type='button' value='Unhide Scrolls' onClick='unhidescroll(framenum)' /> <br />
+<input type='button' value='Save Page' onClick='savepage()' /> <br />
+    
+</div> 
+<p id='sizeboxes'>
+<label >Window Size:</label> <input id='pagewidth'  type='text' size='4'  value='640'/> <input id='pageheight' type='text' size='4' value='360' /><br />
+<label >Page Size: </label> <input id='windowwidth' type='text' size='4' value='625' /><input id='windowheight' type='text' size='4' value='345' />
+</p>
+
+
+</body>
+</html>
